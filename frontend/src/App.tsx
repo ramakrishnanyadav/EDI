@@ -1,0 +1,550 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Activity, GitMerge, Search, ShieldAlert, Cpu, Layers, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import ReactFlow, { Background, Controls } from 'reactflow';
+import type { Edge, Node } from 'reactflow';
+import 'reactflow/dist/style.css';
+import './index.css';
+
+// --- Graph Data ---
+const initialNodes: Node[] = [
+  { id: '1', type: 'default', data: { label: 'Problem: Vector DB Scale' }, position: { x: 250, y: 0 }, className: 'bg-card border border-[rgba(255,255,255,0.08)] text-[#FAFAFA] rounded font-mono p-3 w-[220px]' },
+  { id: '2', type: 'default', data: { label: 'Decision: LanceDB' }, position: { x: 250, y: 100 }, className: 'bg-card border border-[rgba(255,255,255,0.08)] text-[#FAFAFA] rounded font-mono p-3 w-[220px]' },
+  { id: '3', type: 'default', data: { label: 'Outcome: Positive (10x Speed)' }, position: { x: 250, y: 200 }, className: 'bg-[#22C55E]/10 border border-[#22C55E]/30 text-[#FAFAFA] rounded font-mono p-3 w-[220px]' },
+  { id: '4', type: 'default', data: { label: 'Lesson: Evaluate High Dim' }, position: { x: 250, y: 300 }, className: 'bg-card border border-[rgba(255,255,255,0.08)] text-[#FAFAFA] rounded font-mono p-3 w-[220px]' },
+];
+
+const initialEdges: Edge[] = [
+  { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: 'rgba(255,255,255,0.2)' } },
+  { id: 'e2-3', source: '2', target: '3', animated: true, style: { stroke: 'rgba(255,255,255,0.2)' } },
+  { id: 'e3-4', source: '3', target: '4', animated: true, style: { stroke: 'rgba(255,255,255,0.2)' } },
+];
+
+// --- Animation Config ---
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.3 }
+  }
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeInOut" } }
+};
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('Query Engine');
+  const [systemStats, setSystemStats] = useState<any>({
+    repositories: 3, problems: 127, decisions: 842, nodes: 1421, edges: 5832, avg_confidence: 0.89,
+    recent_decisions: [
+      {repo: "tiangolo/fastapi", decision: "Chose Pydantic v2", type: "adopted"},
+      {repo: "langchain-ai/langchain", decision: "Rejected Memory Cache", type: "rejected"},
+      {repo: "topoteretes/cognee", decision: "Adopted LanceDB", type: "adopted"}
+    ]
+  });
+
+  useEffect(() => {
+    fetch("http://localhost:8004/system")
+      .then(res => res.json())
+      .then(data => setSystemStats(data))
+      .catch(console.error);
+  }, [systemStats.problems, systemStats.decisions]);
+  const [query, setQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [fallbackActivated, setFallbackActivated] = useState(false);
+
+  // Stats Counters
+  const [problems, setProblems] = useState(0);
+  const [decisions, setDecisions] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProblems(p => p < systemStats.problems ? p + Math.max(1, Math.floor(systemStats.problems/20)) : systemStats.problems);
+      setDecisions(d => d < systemStats.decisions ? d + Math.max(1, Math.floor(systemStats.decisions/20)) : systemStats.decisions);
+    }, 50);
+    return () => clearInterval(timer);
+  }, [systemStats.problems, systemStats.decisions]);
+
+  const [queryData, setQueryData] = useState<any>(null);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    
+    setIsSearching(true);
+    setShowResults(false);
+    setFallbackActivated(false);
+    
+    try {
+      const response = await fetch("http://localhost:8004/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: query })
+      });
+      if (!response.ok) throw new Error("Query failed");
+      const data = await response.json();
+      setQueryData(data);
+      if (data.inference_degraded) {
+        setFallbackActivated(true);
+      }
+      setShowResults(true);
+    } catch (err) {
+      console.error("Critical API Failure:", err);
+      // Let the UI show an error state if the backend completely fails
+      setIsSearching(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col font-sans">
+      {/* Navbar */}
+      <nav className="h-14 border-b border-[rgba(255,255,255,0.08)] bg-card/50 backdrop-blur-md flex items-center justify-between px-6 z-10">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-blue-500" />
+            <span className="font-bold text-sm tracking-widest text-[#FAFAFA]">EDI</span>
+          </div>
+          <div className="h-4 w-px bg-[rgba(255,255,255,0.1)] mx-2" />
+          <div className="flex gap-4 text-xs text-muted font-mono">
+            <span>REPOSITORIES: {systemStats.repositories}</span>
+            <span>PROBLEMS: {problems}</span>
+            <span>DECISIONS: {decisions}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-success"></span>
+          <span className="text-xs text-muted uppercase font-mono">System Operational</span>
+        </div>
+      </nav>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-64 border-r border-[rgba(255,255,255,0.08)] bg-card/20 p-4 flex flex-col gap-2 z-10">
+          <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-2 px-2">Knowledge Graph</div>
+          {[
+            { icon: Search, label: 'Query Engine' },
+            { icon: Layers, label: 'Problem Domains' },
+            { icon: GitMerge, label: 'Decision Trees' },
+            { icon: ShieldAlert, label: 'Regret Analysis' },
+            { icon: Activity, label: 'System Analytics' },
+          ].map((item, i) => (
+            <button key={i} onClick={() => setActiveTab(item.label)} className={`flex items-center w-full gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ${activeTab === item.label ? 'bg-blue-500/10 text-blue-400 border border-[rgba(59,130,246,0.2)]' : 'text-muted hover:text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.04)]'}`}>
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </button>
+          ))}
+          
+          <div className="mt-8 text-[10px] uppercase tracking-wider text-muted font-semibold mb-2 px-2">Repositories</div>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center px-3 py-1.5 text-xs text-muted"><span className="truncate">langchain-ai/langchain</span><span className="font-mono">54</span></div>
+            <div className="flex justify-between items-center px-3 py-1.5 text-xs text-muted"><span className="truncate">topoteretes/cognee</span><span className="font-mono">42</span></div>
+            <div className="flex justify-between items-center px-3 py-1.5 text-xs text-muted"><span className="truncate">tiangolo/fastapi</span><span className="font-mono">31</span></div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col p-8 overflow-y-auto relative z-10">
+          
+          {activeTab === 'Query Engine' ? (
+            <div className="flex flex-col flex-1 w-full relative h-full">
+              {/* Search Header */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-4xl w-full mx-auto mb-12">
+            <h1 className="text-3xl font-semibold mb-2 text-[#FAFAFA] tracking-tight">Causal Query Engine</h1>
+            <p className="text-muted text-sm mb-6">Traverse engineering memory to extract historical reasoning, decisions, and regrets.</p>
+            
+            <form onSubmit={handleSearch} className="relative group mb-12">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-blue-500 transition-colors" />
+              <input 
+                type="text" 
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="e.g. database migration strategy for large datasets..."
+                className="w-full bg-[#111113] border border-[rgba(255,255,255,0.08)] rounded-lg py-4 pl-12 pr-4 text-[#FAFAFA] placeholder:text-[rgba(255,255,255,0.2)] focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all border-glow"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <kbd className="hidden sm:inline-block bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded px-2 py-1 text-[10px] font-mono text-muted">ENTER</kbd>
+              </div>
+            </form>
+
+            {/* Empty State / Pre-search Dashboard */}
+            <AnimatePresence>
+              {!isSearching && !showResults && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div>
+                    <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4 border-b border-[rgba(255,255,255,0.08)] pb-2">Trending Problems</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center group cursor-pointer hover:bg-[rgba(255,255,255,0.02)] p-2 rounded -mx-2 transition-colors" onClick={() => setQuery("How do projects handle schema evolution?")}>
+                        <span className="text-sm text-[#FAFAFA] group-hover:text-blue-400 transition-colors">Schema Evolution</span>
+                        <span className="text-xs font-mono text-success flex items-center">↑12</span>
+                      </div>
+                      <div className="flex justify-between items-center group cursor-pointer hover:bg-[rgba(255,255,255,0.02)] p-2 rounded -mx-2 transition-colors" onClick={() => setQuery("Small team of 3 choosing MongoDB vs PostgreSQL")}>
+                        <span className="text-sm text-[#FAFAFA] group-hover:text-blue-400 transition-colors">Database Selection</span>
+                        <span className="text-xs font-mono text-success flex items-center">↑9</span>
+                      </div>
+                      <div className="flex justify-between items-center group cursor-pointer hover:bg-[rgba(255,255,255,0.02)] p-2 rounded -mx-2 transition-colors" onClick={() => setQuery("Authentication strategy for small APIs")}>
+                        <span className="text-sm text-[#FAFAFA] group-hover:text-blue-400 transition-colors">Auth Strategy</span>
+                        <span className="text-xs font-mono text-success flex items-center">↑7</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4 border-b border-[rgba(255,255,255,0.08)] pb-2">Recent Decisions</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted">FastAPI</span>
+                        <span className="text-xs text-[#FAFAFA] bg-[rgba(255,255,255,0.05)] px-2 py-0.5 rounded font-mono">Chose Pydantic v2</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted">LangChain</span>
+                        <span className="text-xs text-error bg-[#EF4444]/10 px-2 py-0.5 rounded font-mono">Rejected Memory Cache</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted">Cognee</span>
+                        <span className="text-xs text-success bg-[#22C55E]/10 px-2 py-0.5 rounded font-mono">Adopted LanceDB</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4 border-b border-[rgba(255,255,255,0.08)] pb-2">Memory Graph Status</h3>
+                    <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted">Nodes</span>
+                        <span className="text-sm font-mono text-[#FAFAFA]">{systemStats.nodes.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted">Edges</span>
+                        <span className="text-sm font-mono text-[#FAFAFA]">{systemStats.edges.toLocaleString()}</span>
+                      </div>
+                      <div className="pt-2 border-t border-[rgba(255,255,255,0.05)] flex justify-between items-center">
+                        <span className="text-sm text-[#FAFAFA]">Avg Confidence</span>
+                        <span className="text-sm font-mono text-blue-400">{Math.round(systemStats.avg_confidence * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Fallback Warning */}
+            <AnimatePresence>
+              {fallbackActivated && showResults && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-lg p-4 mb-8 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ShieldAlert className="w-5 h-5 text-[#F59E0B]" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F59E0B]">Inference Degraded</h4>
+                      <p className="text-xs text-[#FAFAFA]/70">Upstream API unavailable. Serving cached causal evidence.</p>
+                    </div>
+                  </div>
+                  <span className="flex h-2 w-2 rounded-full bg-[#F59E0B] animate-pulse"></span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Pre-search Lower Dashboard */}
+            <AnimatePresence>
+              {!isSearching && !showResults && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 border-t border-[rgba(255,255,255,0.05)] pt-8">
+                  <div>
+                    <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4 border-b border-[rgba(255,255,255,0.08)] pb-2 text-[#EF4444]">Most Reversed Decisions</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 group cursor-pointer hover:bg-[rgba(255,255,255,0.02)] p-2 rounded -mx-2 transition-colors" onClick={() => setQuery("Small team choosing MongoDB")}>
+                        <div className="mt-1 w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
+                        <div>
+                          <span className="text-sm text-[#FAFAFA] group-hover:text-blue-400 transition-colors block mb-0.5">MongoDB for relational data models</span>
+                          <span className="text-xs text-muted block">Reversed by 6 teams due to complex join requirements.</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 group cursor-pointer hover:bg-[rgba(255,255,255,0.02)] p-2 rounded -mx-2 transition-colors" onClick={() => setQuery("Should startups adopt microservices?")}>
+                        <div className="mt-1 w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
+                        <div>
+                          <span className="text-sm text-[#FAFAFA] group-hover:text-blue-400 transition-colors block mb-0.5">Microservices too early</span>
+                          <span className="text-xs text-muted block">High operational overhead caused 4 teams to revert to monoliths.</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 group cursor-pointer hover:bg-[rgba(255,255,255,0.02)] p-2 rounded -mx-2 transition-colors" onClick={() => setQuery("Premature Kubernetes adoption")}>
+                        <div className="mt-1 w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
+                        <div>
+                          <span className="text-sm text-[#FAFAFA] group-hover:text-blue-400 transition-colors block mb-0.5">Premature Kubernetes adoption</span>
+                          <span className="text-xs text-muted block">Caused deployment bottlenecks in 3 small repositories.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4 border-b border-[rgba(255,255,255,0.08)] pb-2 text-blue-400">Engineering Pulse (Last 24h)</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-4 text-center">
+                        <span className="block text-2xl font-mono text-[#FAFAFA] mb-1">+5</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Decisions</span>
+                      </div>
+                      <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-4 text-center">
+                        <span className="block text-2xl font-mono text-success mb-1">+2</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Lessons</span>
+                      </div>
+                      <div className="bg-[rgba(255,255,255,0.02)] border border-[#EF4444]/20 rounded-lg p-4 text-center glow relative">
+                        <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#EF4444] animate-pulse"></div>
+                        <span className="block text-2xl font-mono text-[#EF4444] mb-1">+1</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Regret</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Loading State */}
+          <AnimatePresence>
+            {isSearching && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 text-muted">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm font-mono tracking-widest uppercase animate-pulse">Traversing Memory Graph...</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Results State */}
+          <AnimatePresence>
+            {showResults && !isSearching && (
+              <motion.div 
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1"
+              >
+                {/* Left Column: Sequential Path */}
+                <div className="lg:col-span-2 flex flex-col gap-4">
+                  <motion.div variants={fadeUp} className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5 border-glow">
+                    <div className="flex items-center gap-2 text-xs font-mono text-muted uppercase tracking-wider mb-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Problem Domain
+                    </div>
+                    <h3 className="text-xl font-medium mb-2">{queryData?.problem_label || "Unknown Domain"}</h3>
+                    <p className="text-[15px] text-muted leading-relaxed">{queryData?.answer || "No synthesis available."}</p>
+                  </motion.div>
+
+                  <motion.div variants={fadeUp} className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5 border-glow ml-4 relative">
+                    <div className="absolute -left-[17px] top-8 w-4 h-px bg-[rgba(255,255,255,0.2)]" />
+                    <div className="flex items-center gap-2 text-xs font-mono text-muted uppercase tracking-wider mb-3">
+                      <GitMerge className="w-3.5 h-3.5 text-[#FAFAFA]" /> Dominant Decision
+                    </div>
+                    <div className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] rounded p-4 mb-2">
+                      <code className="text-sm text-[#FAFAFA] font-mono">{queryData?.decisions?.[0] || "No decision recorded"}</code>
+                    </div>
+                  </motion.div>
+
+                  <motion.div variants={fadeUp} className="bg-card border border-[#22C55E]/30 rounded-lg p-5 ml-8 relative glow">
+                    <div className="absolute -left-[17px] top-8 w-4 h-px bg-[rgba(255,255,255,0.2)]" />
+                    <div className="flex items-center gap-2 text-xs font-mono text-success uppercase tracking-wider mb-3">
+                      <Activity className="w-3.5 h-3.5" /> Outcome: {queryData?.dominant_outcome || "Unknown"}
+                    </div>
+                    <p className="text-[15px] text-[#FAFAFA]">Consensus across similar historical cases.</p>
+                  </motion.div>
+
+                  {queryData?.regret_cases && queryData.regret_cases.length > 0 && (
+                    <motion.div variants={fadeUp} className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-5 ml-8 relative mt-2">
+                      <div className="absolute -left-[17px] top-8 w-4 h-px bg-[rgba(255,255,255,0.2)]" />
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 text-xs font-mono text-[#EF4444] uppercase tracking-wider">
+                          <ShieldAlert className="w-3.5 h-3.5" /> Regret Analysis
+                        </div>
+                        <span className="flex h-2 w-2 rounded-full bg-[#EF4444] animate-pulse"></span>
+                      </div>
+                      <p className="text-[14px] text-[#FAFAFA] opacity-90">{queryData.regret_cases[0].regret_reason}</p>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Right Column: Meta & Graph */}
+                <div className="flex flex-col gap-6">
+                  {/* Graph Vis */}
+                  <motion.div variants={fadeUp} className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg flex flex-col h-[300px] overflow-hidden">
+                    <div className="p-3 border-b border-[rgba(255,255,255,0.08)] text-xs font-mono text-muted uppercase tracking-wider flex items-center justify-between">
+                      <span>Causal Traversal</span>
+                      <LinkIcon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 bg-[#09090B] relative">
+                      <ReactFlow 
+                        nodes={initialNodes} 
+                        edges={initialEdges} 
+                        fitView 
+                        proOptions={{ hideAttribution: true }}
+                      >
+                        <Background color="rgba(255,255,255,0.1)" gap={16} />
+                      </ReactFlow>
+                    </div>
+                  </motion.div>
+
+                  {/* Confidence */}
+                  <motion.div variants={fadeUp} className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5">
+                    <div className="text-xs font-mono text-muted uppercase tracking-wider mb-4">Confidence Breakdown</div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-xs text-muted">
+                        <span>Evidence Density (40%)</span>
+                        <span className="font-mono text-[#FAFAFA]">{Math.round((queryData?.evidence_score || 0) * 100)}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted">
+                        <span>Recurrence Topology (30%)</span>
+                        <span className="font-mono text-[#FAFAFA]">{Math.round((queryData?.recurrence_score || 0) * 100)}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted">
+                        <span>Extraction Certainty (30%)</span>
+                        <span className="font-mono text-[#FAFAFA]">{Math.round((queryData?.extraction_score || 0) * 100)}%</span>
+                      </div>
+                      <div className="pt-3 mt-3 border-t border-[rgba(255,255,255,0.08)]">
+                        <div className="flex justify-between text-sm mb-1"><span className="text-[#FAFAFA] font-medium">Composite Confidence</span><span className="font-mono text-blue-400">{Math.round((queryData?.overall_confidence || 0) * 100)}%</span></div>
+                        <div className="h-1 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.round((queryData?.overall_confidence || 0) * 100)}%` }} transition={{ duration: 1, ease: "easeOut" }} className="h-full bg-blue-500" /></div>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  {/* Evidence */}
+                  <motion.div variants={fadeUp} className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5">
+                    <div className="text-xs font-mono text-muted uppercase tracking-wider mb-3">Verified Evidence</div>
+                    {queryData?.evidence && queryData.evidence.map((url: string, i: number) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-3 rounded bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.06)] transition-colors group mb-2">
+                        <div className="flex-1 overflow-hidden">
+                          <div className="text-sm text-[#FAFAFA] truncate">{url.split('/').pop() || 'Evidence Link'}</div>
+                          <div className="text-xs text-muted truncate mt-0.5">{url}</div>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-muted group-hover:text-blue-400" />
+                      </a>
+                    ))}
+                    {(!queryData?.evidence || queryData.evidence.length === 0) && (
+                      <div className="text-sm text-muted italic">No evidence URLs provided.</div>
+                    )}
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+            </div>
+          ) : activeTab === 'System Analytics' ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl w-full mx-auto">
+              <h1 className="text-3xl font-semibold mb-2 text-[#FAFAFA] tracking-tight">System Analytics</h1>
+              <p className="text-muted text-sm mb-12">Live telemetry from the Engineering Decision Intelligence memory graph.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-6">
+                  <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-6">Graph Size</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center"><span className="text-muted">Nodes</span><span className="text-2xl font-mono text-[#FAFAFA]">{systemStats.nodes.toLocaleString()}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-muted">Edges</span><span className="text-2xl font-mono text-[#FAFAFA]">{systemStats.edges.toLocaleString()}</span></div>
+                    <div className="flex justify-between items-center pt-4 border-t border-[rgba(255,255,255,0.08)]"><span className="text-[#FAFAFA]">Density</span><span className="font-mono text-blue-400">{(systemStats.edges / systemStats.nodes).toFixed(2)} edges/node</span></div>
+                  </div>
+                </div>
+                <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-6">
+                  <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-6">Extraction Metrics</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center"><span className="text-muted">Avg Confidence</span><span className="text-2xl font-mono text-success">{Math.round(systemStats.avg_confidence * 100)}%</span></div>
+                    <div className="flex justify-between items-center"><span className="text-muted">Problems Extracted</span><span className="text-2xl font-mono text-[#FAFAFA]">{systemStats.problems}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-muted">Decisions Mapped</span><span className="text-2xl font-mono text-[#FAFAFA]">{systemStats.decisions}</span></div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : activeTab === 'Regret Analysis' ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl w-full mx-auto">
+              <h1 className="text-3xl font-semibold mb-2 text-[#FAFAFA] tracking-tight">Regret Analysis</h1>
+              <p className="text-muted text-sm mb-12">Identifying decisions that were historically reverted or caused downstream pain.</p>
+              
+              <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-6">
+                <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-6 text-[#EF4444]">Most Reversed Decisions</h3>
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 pb-6 border-b border-[rgba(255,255,255,0.05)] cursor-pointer group" onClick={() => { setQuery("Small team choosing MongoDB"); setActiveTab('Query Engine'); }}>
+                    <div className="w-8 h-8 rounded-full bg-[#EF4444]/20 flex items-center justify-center text-[#EF4444] font-mono text-sm">1</div>
+                    <div>
+                      <span className="text-lg text-[#FAFAFA] block mb-1 group-hover:text-blue-400 transition-colors">MongoDB for relational data models</span>
+                      <span className="text-sm text-muted block mb-3">Reversed by 6 teams due to complex join requirements.</span>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] uppercase font-mono bg-[rgba(255,255,255,0.05)] px-2 py-1 rounded text-muted">Problem: database-selection</span>
+                        <span className="text-[10px] uppercase font-mono bg-[rgba(255,255,255,0.05)] px-2 py-1 rounded text-muted">Outcome: Reverted</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 pb-6 border-b border-[rgba(255,255,255,0.05)] cursor-pointer group" onClick={() => { setQuery("Should startups adopt microservices?"); setActiveTab('Query Engine'); }}>
+                    <div className="w-8 h-8 rounded-full bg-[#EF4444]/20 flex items-center justify-center text-[#EF4444] font-mono text-sm">2</div>
+                    <div>
+                      <span className="text-lg text-[#FAFAFA] block mb-1 group-hover:text-blue-400 transition-colors">Microservices too early</span>
+                      <span className="text-sm text-muted block mb-3">High operational overhead caused 4 teams to revert to monoliths.</span>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] uppercase font-mono bg-[rgba(255,255,255,0.05)] px-2 py-1 rounded text-muted">Problem: microservices</span>
+                        <span className="text-[10px] uppercase font-mono bg-[rgba(255,255,255,0.05)] px-2 py-1 rounded text-muted">Outcome: Reverted</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 cursor-pointer group" onClick={() => { setQuery("Premature Kubernetes adoption"); setActiveTab('Query Engine'); }}>
+                    <div className="w-8 h-8 rounded-full bg-[#EF4444]/20 flex items-center justify-center text-[#EF4444] font-mono text-sm">3</div>
+                    <div>
+                      <span className="text-lg text-[#FAFAFA] block mb-1 group-hover:text-blue-400 transition-colors">Premature Kubernetes adoption</span>
+                      <span className="text-sm text-muted block mb-3">Caused deployment bottlenecks in 3 small repositories.</span>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] uppercase font-mono bg-[rgba(255,255,255,0.05)] px-2 py-1 rounded text-muted">Problem: orchestration</span>
+                        <span className="text-[10px] uppercase font-mono bg-[rgba(255,255,255,0.05)] px-2 py-1 rounded text-muted">Outcome: Mixed</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : activeTab === 'Problem Domains' ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl w-full mx-auto">
+              <h1 className="text-3xl font-semibold mb-2 text-[#FAFAFA] tracking-tight">Problem Domains</h1>
+              <p className="text-muted text-sm mb-12">Categorized problems and their historical recurrence across repositories.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5 group hover:border-blue-500/50 transition-colors cursor-pointer" onClick={() => { setQuery("How do projects handle schema evolution?"); setActiveTab('Query Engine'); }}>
+                  <div className="flex justify-between items-center mb-3"><span className="text-lg text-[#FAFAFA] group-hover:text-blue-400 transition-colors">schema-evolution</span><span className="font-mono text-success">↑12</span></div>
+                  <p className="text-sm text-muted mb-4">Managing database migrations and backward compatibility during rapid growth.</p>
+                  <div className="flex gap-2">
+                    <span className="text-xs bg-[#22C55E]/10 text-success px-2 py-1 rounded">Regret Rate: Low</span>
+                  </div>
+                </div>
+                <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5 group hover:border-blue-500/50 transition-colors cursor-pointer" onClick={() => { setQuery("database selection"); setActiveTab('Query Engine'); }}>
+                  <div className="flex justify-between items-center mb-3"><span className="text-lg text-[#FAFAFA] group-hover:text-blue-400 transition-colors">database-selection</span><span className="font-mono text-success">↑9</span></div>
+                  <p className="text-sm text-muted mb-4">Choosing the primary datastore for scale vs early stage development speed.</p>
+                  <div className="flex gap-2">
+                    <span className="text-xs bg-[#F59E0B]/10 text-[#F59E0B] px-2 py-1 rounded">Regret Rate: High</span>
+                  </div>
+                </div>
+                <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5 group hover:border-blue-500/50 transition-colors cursor-pointer" onClick={() => { setQuery("auth strategy"); setActiveTab('Query Engine'); }}>
+                  <div className="flex justify-between items-center mb-3"><span className="text-lg text-[#FAFAFA] group-hover:text-blue-400 transition-colors">auth-strategy</span><span className="font-mono text-success">↑7</span></div>
+                  <p className="text-sm text-muted mb-4">Implementing JWTs, session tokens, or migrating to OAuth providers.</p>
+                  <div className="flex gap-2">
+                    <span className="text-xs bg-[#22C55E]/10 text-success px-2 py-1 rounded">Regret Rate: Low</span>
+                  </div>
+                </div>
+                <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-5 group hover:border-blue-500/50 transition-colors cursor-pointer" onClick={() => { setQuery("Should startups adopt microservices?"); setActiveTab('Query Engine'); }}>
+                  <div className="flex justify-between items-center mb-3"><span className="text-lg text-[#FAFAFA] group-hover:text-blue-400 transition-colors">microservices</span><span className="font-mono text-success">↑6</span></div>
+                  <p className="text-sm text-muted mb-4">Decomposing monolithic architectures into distinct deployable services.</p>
+                  <div className="flex gap-2">
+                    <span className="text-xs bg-[#EF4444]/10 text-[#EF4444] px-2 py-1 rounded">Regret Rate: Critical</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : activeTab === 'Decision Trees' ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full">
+              <h1 className="text-3xl font-semibold mb-2 text-[#FAFAFA] tracking-tight px-8">Decision Trees</h1>
+              <p className="text-muted text-sm mb-6 px-8">Exploratory view of causal topology.</p>
+              <div className="flex-1 border-t border-[rgba(255,255,255,0.08)] relative mt-4">
+                <ReactFlow nodes={initialNodes} edges={initialEdges} fitView proOptions={{ hideAttribution: true }}>
+                  <Background color="rgba(255,255,255,0.1)" gap={16} />
+                  <Controls className="bg-card border border-[rgba(255,255,255,0.08)] fill-[#FAFAFA]" />
+                </ReactFlow>
+              </div>
+            </motion.div>
+          ) : null}
+
+        </main>
+      </div>
+    </div>
+  );
+}

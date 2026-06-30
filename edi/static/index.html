@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering Decision Intelligence (EDI)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen p-8">
+    <div class="max-w-6xl mx-auto space-y-12">
+        <header class="text-center space-y-4">
+            <h1 class="text-5xl font-bold tracking-tight gradient-text">Engineering Decision Intelligence</h1>
+            <p class="text-slate-400 text-lg max-w-2xl mx-auto">Software teams write code. They lose the reasoning. We remember it. A causal graph memory system powered by Cognee.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Top Problems -->
+            <div class="glass-panel p-6 space-y-6 lg:col-span-1">
+                <h2 class="text-2xl font-semibold border-b border-slate-700 pb-2">Global Problems</h2>
+                <div id="problems-list" class="space-y-4">
+                    <!-- Loaded dynamically -->
+                    <div class="p-4 bg-slate-800 rounded-lg animate-pulse h-24"></div>
+                </div>
+            </div>
+
+            <!-- Right Column: Query Engine -->
+            <div class="glass-panel p-6 space-y-6 lg:col-span-2">
+                <h2 class="text-2xl font-semibold border-b border-slate-700 pb-2">Reasoning Engine</h2>
+                <form id="query-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Describe your context & problem</label>
+                        <textarea id="query-text" rows="4" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. Small team of 3, early stage AI framework, choosing between MongoDB and PostgreSQL for a schema that changes frequently..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Team Size</label>
+                            <select id="team-size" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-slate-100">
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Project Stage</label>
+                            <select id="project-stage" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-slate-100">
+                                <option value="early">Early</option>
+                                <option value="growth">Growth</option>
+                                <option value="mature">Mature</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+                        Traverse Causal Graph
+                    </button>
+                </form>
+
+                <!-- Results Area -->
+                <div id="results-area" class="hidden space-y-6 mt-8 pt-6 border-t border-slate-700">
+                    <div class="flex items-center justify-between">
+                        <h3 id="res-label" class="text-xl font-bold text-sky-400"></h3>
+                        <span id="res-confidence" class="px-3 py-1 bg-green-900 text-green-300 text-sm font-medium rounded-full"></span>
+                    </div>
+                    
+                    <p id="res-answer" class="text-slate-300 leading-relaxed"></p>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-800 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-200 mb-2">Metrics</h4>
+                            <ul class="text-sm text-slate-400 space-y-1">
+                                <li>Recurrence: <span id="res-recurrence" class="text-white font-mono"></span></li>
+                                <li>Similar Cases: <span id="res-similar" class="text-white font-mono"></span></li>
+                                <li>Dominant Outcome: <span id="res-outcome" class="text-white capitalize"></span></li>
+                            </ul>
+                        </div>
+                        <div class="bg-slate-800 p-4 rounded-lg border border-red-900/50">
+                            <h4 class="font-semibold text-red-400 mb-2">Regret Cases (LED_TO_REGRET)</h4>
+                            <ul id="res-regrets" class="text-sm text-slate-300 space-y-2 list-disc pl-4"></ul>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold text-slate-200 mb-2">Top Lessons</h4>
+                        <ul id="res-lessons" class="space-y-2"></ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold text-slate-200 mb-2">Evidence URLs</h4>
+                        <div id="res-evidence" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load Problems on Start
+        fetch('/problems').then(res => res.json()).then(data => {
+            const list = document.getElementById('problems-list');
+            list.innerHTML = '';
+            data.forEach(p => {
+                list.innerHTML += `
+                    <div class="p-4 bg-slate-800 rounded-lg hover:bg-slate-700 transition cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-indigo-400">${p.label}</h3>
+                            <span class="bg-indigo-900 text-indigo-200 text-xs px-2 py-1 rounded-full">${p.recurrence_count} cases</span>
+                        </div>
+                        <p class="text-sm text-slate-400 italic">"${p.top_lesson}"</p>
+                    </div>
+                `;
+            });
+        }).catch(err => {
+            document.getElementById('problems-list').innerHTML = '<p class="text-red-400">Failed to load problems.</p>';
+        });
+
+        // Handle Query
+        document.getElementById('query-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = 'Traversing Graph...';
+            btn.disabled = true;
+
+            const payload = {
+                description: document.getElementById('query-text').value || 'Default query',
+                context: {
+                    team_size: document.getElementById('team-size').value,
+                    project_stage: document.getElementById('project-stage').value
+                }
+            };
+
+            try {
+                const res = await fetch('/query', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                // Populate UI
+                document.getElementById('results-area').classList.remove('hidden');
+                document.getElementById('res-label').innerText = data.problem_label;
+                document.getElementById('res-confidence').innerText = `Confidence: ${(data.overall_confidence * 100).toFixed(0)}%`;
+                document.getElementById('res-answer').innerText = data.answer;
+                document.getElementById('res-recurrence').innerText = data.recurrence_count;
+                document.getElementById('res-similar').innerText = data.similar_cases;
+                document.getElementById('res-outcome').innerText = data.dominant_outcome;
+                
+                // Regrets
+                const regretsList = document.getElementById('res-regrets');
+                regretsList.innerHTML = '';
+                data.regret_cases.forEach(r => {
+                    regretsList.innerHTML += `<li>Chose <span class="font-semibold">${r.choice}</span> → Regretted because "${r.reason}". Wish they chose <span class="text-sky-400">${r.alternative}</span>.</li>`;
+                });
+                if(data.regret_cases.length === 0) regretsList.innerHTML = '<li class="text-slate-500">No regret cases recorded.</li>';
+
+                // Lessons
+                const lessonsList = document.getElementById('res-lessons');
+                lessonsList.innerHTML = '';
+                data.lessons.forEach(l => {
+                    lessonsList.innerHTML += `<li class="p-3 bg-slate-800 rounded-lg text-sm text-slate-300 border-l-4 border-indigo-500">${l.text}</li>`;
+                });
+
+                // Evidence
+                const evList = document.getElementById('res-evidence');
+                evList.innerHTML = '';
+                data.evidence.forEach(e => {
+                    evList.innerHTML += `<a href="${e}" target="_blank" class="text-xs bg-slate-700 hover:bg-slate-600 text-sky-400 px-3 py-1 rounded-full transition truncate max-w-xs">${e}</a>`;
+                });
+
+            } catch (err) {
+                alert('Query failed: ' + err);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
