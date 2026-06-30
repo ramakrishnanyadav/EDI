@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { ArrowRight, GitMerge, Cpu, Search, Activity, Terminal, Code2, Database, Box } from 'lucide-react';
+import { GitMerge, Cpu, Search, Activity, Layers, ExternalLink } from 'lucide-react';
 
 export default function LandingPage({ onLogin }: { onLogin: () => void }) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -50,10 +50,10 @@ export default function LandingPage({ onLogin }: { onLogin: () => void }) {
       {/* Floating Tech Orbs (Rizz Elements) */}
       <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
         {[
-          { Icon: Code2, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", delay: 0, top: "20%", left: "10%" },
-          { Icon: Database, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", delay: 1.5, top: "60%", left: "5%" },
+          { Icon: Cpu, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", delay: 0, top: "20%", left: "10%" },
+          { Icon: Layers, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", delay: 1.5, top: "60%", left: "5%" },
           { Icon: GitMerge, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/30", delay: 3, top: "15%", left: "85%" },
-          { Icon: Box, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", delay: 0.5, top: "70%", left: "80%" }
+          { Icon: Activity, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", delay: 0.5, top: "70%", left: "80%" }
         ].map((orb, i) => (
           <motion.div
             key={i}
@@ -131,12 +131,12 @@ export default function LandingPage({ onLogin }: { onLogin: () => void }) {
             <div className="relative group cursor-pointer" onClick={onLogin}>
               <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
               <button className="relative flex items-center gap-3 px-10 py-5 bg-black text-white font-bold text-lg rounded-xl leading-none transition-all duration-200">
-                Deploy Agent Now <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                Deploy Agent Now <ExternalLink className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
               </button>
             </div>
             
             <button onClick={onLogin} className="flex items-center gap-2 px-8 py-5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium border border-white/10 backdrop-blur-md transition-colors">
-              <Terminal className="w-5 h-5 text-gray-400" /> Watch Demo
+              <Search className="w-5 h-5 text-gray-400" /> Watch Demo
             </button>
           </motion.div>
         </div>
