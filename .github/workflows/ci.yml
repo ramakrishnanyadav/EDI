@@ -37,4 +37,4 @@ jobs:
         OPENAI_API_KEY: "dummy_key_for_tests"
         GITHUB_TOKEN: "dummy_key_for_tests"
       run: |
-        pytest tests/ -v
+        PYTHONPATH=. pytest tests/ -v
