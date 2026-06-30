@@ -14,12 +14,12 @@
 
 ## 🚨 The Problem
 
-Six months after an engineering decision is made, teams ask:
+A Staff Engineer spends 3 days digging through stale Jira tickets, disjointed Slack threads, and closed PRs to understand why a microservices migration was rolled back two years ago. **EDI reconstructs the exact causal chain in 3 seconds.**
 
+Six months after an engineering decision is made, teams ask:
 - Why did we choose MongoDB?
 - Why was Kubernetes introduced?
 - Why was this architecture rejected?
-- What happened the last time we made this decision?
 
 GitHub stores code. Documentation becomes stale. Conversations disappear. Institutional memory is lost.
 
@@ -48,9 +48,30 @@ graph LR
     O -->|generates| L[Lesson]
 ```
 
-When a user submits a query, EDI follows this structured logic:
+### The Investigation Lifecycle
 
-`Query` ➔ `Problem Matching` ➔ `Graph Traversal` ➔ `Outcome Analysis` ➔ `Lesson Extraction` ➔ `Confidence Scoring`
+| Stage | What happens |
+| :--- | :--- |
+| **1 · Trigger** | A developer queries the EDI Dashboard or an ingestion worker pulls new merged Pull Requests. |
+| **2 · Extract** | The two-stage LLM pipeline strips noise and forces raw engineering discussions into a strict JSON causal schema. |
+| **3 · Persist** | Cognee writes the dense embeddings to LanceDB and the causal relationships to the Kuzu graph database. |
+| **4 · Query** | The engine traverses the graph topology, looking for decision outcomes and structural recurrence. |
+| **5 · Brief** | EDI returns a heavily cited executive brief with a mathematical confidence score based on historical evidence. |
+
+### The Causal Data Plane
+The "default" RAG pattern is to chunk text, embed it, and run a vector similarity search. EDI refuses to do that. The agent is required to think in causal relationships. 
+
+Here is the kind of query the EDI engine actually writes to evaluate regret:
+```cypher
+-- A Kuzu Graph query traversing causal topology
+MATCH (p:Problem {domain: 'database-selection'})
+  -[:LED_TO]-> (d:Decision {choice: 'MongoDB'})
+  -[:RESULTED_IN]-> (o:Outcome)
+  -[:GENERATED]-> (l:Lesson)
+WHERE o.status = 'REVERTED'
+RETURN count(p) as ReversalCount, l.description
+ORDER BY ReversalCount DESC
+```
 
 ---
 
@@ -132,6 +153,15 @@ graph TD
     
     UI <-->|Traverse Graph / Fetch Telemetry| API
 ```
+
+### Knowledge Sources
+What EDI actively parses and maps into the memory graph:
+
+| Source | Artifacts Analyzed | What it grounds in the graph |
+| :--- | :--- | :--- |
+| **GitHub Issues** | Body, Labels, Comments | The original `Problem` requirements and context. |
+| **GitHub PRs** | Diff summaries, Review threads | The `Decision` and immediate technical trade-offs. |
+| **GitHub Discussions** | Q&A, Architecture categories | The downstream `Outcomes` and retrospective `Lessons`. |
 
 ---
 
