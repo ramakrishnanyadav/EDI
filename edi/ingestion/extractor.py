@@ -12,8 +12,8 @@ from datetime import datetime
 
 import openai
 
-from ingestion import cache
-from ingestion.taxonomy import is_valid_slug, taxonomy_for_prompt
+from edi.ingestion import cache
+from edi.ingestion.taxonomy import is_valid_slug, taxonomy_for_prompt
 
 logger = logging.getLogger(__name__)
 

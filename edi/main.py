@@ -19,12 +19,12 @@ load_dotenv(Path(__file__).parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from models import (IngestRequest, IngestResponse, QueryRequest, QueryResponse, RegretCaseOut, TemporalPoint, ProblemSummary, HealthResponse)
-from ingestion import cache
-from ingestion.github import fetch_threads
-from ingestion.extractor import Extractor
-from graph.builder import build_graph
-from query.engine import QueryEngine, get_all_problems
+from edi.models import (IngestRequest, IngestResponse, QueryRequest, QueryResponse, RegretCaseOut, TemporalPoint, ProblemSummary, HealthResponse)
+from edi.ingestion import cache
+from edi.ingestion.github import fetch_threads
+from edi.ingestion.extractor import Extractor
+from edi.graph.builder import build_graph
+from edi.query.engine import QueryEngine, get_all_problems
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("edi.main")

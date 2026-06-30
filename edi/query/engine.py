@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 import openai
 
-from ingestion.taxonomy import PROBLEM_TAXONOMY, get_label, taxonomy_for_prompt
+from edi.ingestion.taxonomy import PROBLEM_TAXONOMY, get_label, taxonomy_for_prompt
 
 logger = logging.getLogger(__name__)
 
