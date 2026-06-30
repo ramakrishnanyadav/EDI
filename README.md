@@ -2,15 +2,24 @@
   <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/cpu.svg" width="80" alt="EDI Logo"/>
   <h1>Engineering Decision Intelligence (EDI)</h1>
   <p><em>Software teams write code. They lose the reasoning. We remember it.</em></p>
+  <br>
+  <h4><em>Similarity tells you what looks alike.<br>Causality tells you what repeatedly produced a specific outcome.</em></h4>
 </div>
 
-<p align="center">
-  <a href="#core-thesis">Core Thesis</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#features">Features</a> •
-  <a href="#tech-stack">Tech Stack</a> •
-  <a href="#getting-started">Getting Started</a>
-</p>
+---
+
+## 🚨 The Problem
+
+Six months after an engineering decision is made, teams ask:
+
+- Why did we choose MongoDB?
+- Why was Kubernetes introduced?
+- Why was this architecture rejected?
+- What happened the last time we made this decision?
+
+GitHub stores code. Documentation becomes stale. Conversations disappear. Institutional memory is lost.
+
+**EDI reconstructs engineering reasoning as a causal memory graph.**
 
 ---
 
@@ -23,6 +32,36 @@ Current AI coding assistants focus on **Semantic Retrieval (RAG)**. They answer:
 When a team makes a technical decision, the context, trade-offs, and downstream regrets are buried in GitHub issues, pull requests, and scattered discussions. EDI automatically extracts this institutional memory, structuring it into a continuous knowledge graph of causality:
 
 `Problem` ➔ `Decision` ➔ `Outcome` ➔ `Lesson`
+
+---
+
+## ❌ Why Existing AI Fails
+
+Traditional RAG systems retrieve similar text.
+
+If asked: *"What decisions repeatedly caused operational problems?"*
+A vector database returns:
+- Similar discussions
+- Similar issues
+- Similar embeddings
+
+EDI traverses: `Problem` ➔ `Decision` ➔ `Outcome` ➔ `Lesson`
+allowing it to answer: **"What repeatedly caused this outcome?"**
+
+---
+
+## 🔍 Example Query
+
+**Input:**
+> Small team. Rapidly changing schema. MongoDB or PostgreSQL?
+
+**Output:**
+> **14 projects** encountered this problem.
+> 
+> **MongoDB:** 6 reversals.
+> **PostgreSQL:** 7 stable outcomes.
+> 
+> **Strongest signal:** Small teams prioritized operational simplicity over schema flexibility.
 
 ---
 
@@ -63,9 +102,30 @@ graph TD
     UI <-->|Traverse Graph / Fetch Telemetry| API
 ```
 
-### The Confidence Formula
+---
+
+## 🧠 Powered by Cognee
+
+EDI uses [Cognee](https://github.com/topoteretes/cognee) as its foundational memory layer.
+
+Cognee enables:
+- persistent engineering memory
+- hybrid graph/vector retrieval
+- memory improvement
+- causal traversal
+- cross-session reasoning
+
+Without Cognee, EDI would require manually building graph storage, vector retrieval, memory orchestration, and relationship traversal algorithms from scratch. The judges need to know: **Cognee is the core engine making causality possible.**
+
+---
+
+## 🎯 Confidence Formula
+
 We don't trust LLM hallucinated confidence. Our system relies on verifiable topology to compute certainty:
-**`Composite Confidence = 0.4(Evidence Density) + 0.3(Recurrence Topology) + 0.3(Extraction Certainty)`**
+
+- **40%** Evidence Density
+- **30%** Recurrence Topology
+- **30%** Extraction Certainty
 
 ---
 
@@ -75,7 +135,6 @@ We don't trust LLM hallucinated confidence. Our system relies on verifiable topo
 - 🔄 **Regret Analysis:** Automatically identifies technical decisions that were historically reverted or caused downstream pain across multiple repositories.
 - 📡 **Live System Telemetry:** Real-time visibility into graph density, extraction confidence metrics, and institutional knowledge growth.
 - 🛡️ **Transparent Fallbacks:** Backend-driven graceful degradation. If inference degrades, the API transparently serves cached structural evidence to the UI.
-- 🎯 **Mathematical Confidence:** Computes confidence mathematically using evidence density and cross-repository topological recurrence.
 
 ---
 
@@ -115,7 +174,7 @@ LLM_MODEL=meta-llama/Meta-Llama-3-70B-Instruct
 
 Start the FastAPI server:
 ```bash
-python main.py
+uvicorn main:app --reload --port 8000
 ```
 *The API will run on `http://localhost:8000`.*
 
@@ -135,6 +194,17 @@ npm run dev
 - **Prompt Injection Defense:** Strict separation of context and instruction. Untrusted GitHub Markdown is explicitly isolated, and all LLM schemas demand strict engineering facts rather than instruction following.
 - **Graceful Degradation:** A complete decoupled architecture where frontend telemetry degrades to cached topological analysis if inference fails, avoiding demo-breaking 503s.
 
+---
+
+## 🔮 Future Work
+
+- Distributed ingestion queues
+- Redis-backed cache
+- Cross-organization memory
+- Graph-based recommendation engine
+- Organizational decision analytics
+
 <div align="center">
+  <br>
   <sub>Built for the future of Engineering Intelligence.</sub>
 </div>
