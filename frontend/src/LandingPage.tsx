@@ -146,7 +146,6 @@ export default function LandingPage({ onLogin }: { onLogin: () => void }) {
           initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.6 }}
           style={{ perspective: 1200 }}
           className="w-full max-w-5xl mt-24 relative flex justify-center items-center"
-          onMouseMove={handleMouseMove}
         >
           <motion.div
             style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
