@@ -46,7 +46,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    fetch("http://localhost:8004/system")
+    fetch("http://localhost:8000/system")
       .then(res => res.json())
       .then(data => setSystemStats(data))
       .catch(console.error);
@@ -79,7 +79,7 @@ export default function App() {
     setFallbackActivated(false);
     
     try {
-      const response = await fetch("http://localhost:8004/query", {
+      const response = await fetch("http://localhost:8000/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: query })
