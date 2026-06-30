@@ -60,6 +60,32 @@ export default function App() {
   const [problems, setProblems] = useState(0);
   const [decisions, setDecisions] = useState(0);
 
+  // Ingestion State
+  const [ingestRepo, setIngestRepo] = useState('https://github.com/tiangolo/fastapi');
+  const [ingestMax, setIngestMax] = useState(15);
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestResult, setIngestResult] = useState<any>(null);
+
+  const handleIngest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ingestRepo.trim()) return;
+    setIsIngesting(true);
+    setIngestResult(null);
+    try {
+      const response = await fetch("http://localhost:8000/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: ingestRepo, max_issues: ingestMax })
+      });
+      const data = await response.json();
+      setIngestResult({ status: response.ok ? 'success' : 'error', data });
+    } catch (err) {
+      setIngestResult({ status: 'error', data: { message: "Failed to connect to backend" } });
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => {
       setProblems(p => p < systemStats.problems ? p + Math.max(1, Math.floor(systemStats.problems/20)) : systemStats.problems);
@@ -132,6 +158,7 @@ export default function App() {
             { icon: GitMerge, label: 'Decision Trees' },
             { icon: ShieldAlert, label: 'Regret Analysis' },
             { icon: Activity, label: 'System Analytics' },
+            { icon: Activity, label: 'Data Ingestion' }, // Reusing Activity icon or use a generic one like ExternalLink. Let's just use Layers
           ].map((item, i) => (
             <button key={i} onClick={() => setActiveTab(item.label)} className={`flex items-center w-full gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ${activeTab === item.label ? 'bg-blue-500/10 text-blue-400 border border-[rgba(59,130,246,0.2)]' : 'text-muted hover:text-[#FAFAFA] hover:bg-[rgba(255,255,255,0.04)]'}`}>
               <item.icon className="w-4 h-4" />
@@ -539,6 +566,81 @@ export default function App() {
                   <Background color="rgba(255,255,255,0.1)" gap={16} />
                   <Controls className="bg-card border border-[rgba(255,255,255,0.08)] fill-[#FAFAFA]" />
                 </ReactFlow>
+              </div>
+            </motion.div>
+          ) : activeTab === 'Data Ingestion' ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full max-w-4xl w-full mx-auto">
+              <h1 className="text-3xl font-semibold mb-2 text-[#FAFAFA] tracking-tight">Agent Ingestion Engine</h1>
+              <p className="text-muted text-sm mb-6">Autonomous ingestion and extraction from engineering repositories.</p>
+              
+              <div className="bg-card border border-[rgba(255,255,255,0.08)] rounded-lg p-6 mb-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/20" />
+                <form onSubmit={handleIngest} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-mono text-muted uppercase tracking-wider mb-2">Target Repository URL</label>
+                    <input 
+                      type="text" 
+                      value={ingestRepo}
+                      onChange={e => setIngestRepo(e.target.value)}
+                      className="w-full bg-[#111113] border border-[rgba(255,255,255,0.08)] rounded p-3 text-[#FAFAFA] focus:outline-none focus:border-blue-500/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono text-muted uppercase tracking-wider mb-2">Max Issues to Analyze</label>
+                    <input 
+                      type="number" 
+                      min="10" max="200"
+                      value={ingestMax}
+                      onChange={e => setIngestMax(parseInt(e.target.value))}
+                      className="w-full bg-[#111113] border border-[rgba(255,255,255,0.08)] rounded p-3 text-[#FAFAFA] focus:outline-none focus:border-blue-500/50"
+                    />
+                  </div>
+                  <button type="submit" disabled={isIngesting} className="mt-4 px-6 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-mono text-sm rounded transition-colors w-full uppercase tracking-widest disabled:opacity-50">
+                    {isIngesting ? 'Initializing Autonomous Agent...' : 'Trigger Extraction Pipeline'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Terminal Output */}
+              <div className="bg-[#0A0A0C] border border-[rgba(255,255,255,0.08)] rounded-lg flex flex-col h-64 overflow-hidden shadow-2xl">
+                <div className="bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.05)] p-2 flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#EF4444]/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-success/80" />
+                  <span className="text-[10px] font-mono text-muted ml-2">edi-agent-terminal</span>
+                </div>
+                <div className="p-4 font-mono text-xs overflow-y-auto flex-1 space-y-2">
+                  <div className="text-muted">edi-agent@system:~$ waiting for input...</div>
+                  
+                  {isIngesting && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                      <div className="text-blue-400">edi-agent@system:~$ ./ingest --repo="{ingestRepo}" --limit={ingestMax}</div>
+                      <div className="text-[#FAFAFA] flex items-center gap-2"><span className="animate-spin text-muted">|</span> Connecting to GitHub API...</div>
+                      <div className="text-muted ml-4">&gt; Authenticating with token... OK</div>
+                      <div className="text-muted ml-4">&gt; Fetching closed issues...</div>
+                      <div className="text-muted ml-4">&gt; Spawning autonomous Extractor instance...</div>
+                      <div className="text-[#F59E0B] animate-pulse">Running LLM Taxonomy Mapping (This takes a few minutes)...</div>
+                    </motion.div>
+                  )}
+
+                  {ingestResult && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 border-t border-[rgba(255,255,255,0.1)] pt-2 mt-2">
+                      {ingestResult.status === 'success' ? (
+                        <>
+                          <div className="text-success">&gt; Graph construction complete.</div>
+                          <div className="text-[#FAFAFA]">{JSON.stringify(ingestResult.data, null, 2)}</div>
+                          <div className="text-blue-400">edi-agent@system:~$ Ingestion successful! Head to Query Engine to search.</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[#EF4444]">&gt; Error during ingestion pipeline execution.</div>
+                          <div className="text-[#FAFAFA]">{JSON.stringify(ingestResult.data, null, 2)}</div>
+                          <div className="text-[#EF4444]">edi-agent@system:~$ Process exited with code 1. Check your .env file for valid GITHUB_TOKEN and OPENAI_API_KEY.</div>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
               </div>
             </motion.div>
           ) : null}
