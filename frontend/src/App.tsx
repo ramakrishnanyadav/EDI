@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, GitMerge, Search, ShieldAlert, Cpu, Layers, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import LandingPage from './LandingPage';
 import ReactFlow, { Background, Controls } from 'reactflow';
 import type { Edge, Node } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -35,6 +36,7 @@ const fadeUp = {
 };
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('Query Engine');
   const [systemStats, setSystemStats] = useState<any>({
     repositories: 3, problems: 127, decisions: 842, nodes: 1421, edges: 5832, avg_confidence: 0.89,
@@ -125,6 +127,10 @@ export default function App() {
       setIsSearching(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return <LandingPage onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
