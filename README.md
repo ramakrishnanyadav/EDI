@@ -6,6 +6,10 @@
   <h4><em>Similarity tells you what looks alike.<br>Causality tells you what repeatedly produced a specific outcome.</em></h4>
 </div>
 
+<p align="center">
+  <img src="./docs/dashboard.png" width="90%" alt="EDI Dashboard" />
+</p>
+
 ---
 
 ## 🚨 The Problem
@@ -29,9 +33,24 @@ Current AI coding assistants focus on **Semantic Retrieval (RAG)**. They answer:
 
 **Engineering Decision Intelligence (EDI)** focuses on **Causal Retrieval (Graphs)**. It answers: *"What caused what?"*
 
-When a team makes a technical decision, the context, trade-offs, and downstream regrets are buried in GitHub issues, pull requests, and scattered discussions. EDI automatically extracts this institutional memory, structuring it into a continuous knowledge graph of causality:
+When a team makes a technical decision, the context, trade-offs, and downstream regrets are buried in GitHub issues, pull requests, and scattered discussions. EDI automatically extracts this institutional memory, structuring it into a continuous knowledge graph of causality.
 
-`Problem` ➔ `Decision` ➔ `Outcome` ➔ `Lesson`
+---
+
+## 🧠 How EDI Thinks
+
+At the core of EDI is the causal topology of technical decisions:
+
+```mermaid
+graph LR
+    P[Problem] -->|requires| D[Decision]
+    D -->|results in| O[Outcome]
+    O -->|generates| L[Lesson]
+```
+
+When a user submits a query, EDI follows this structured logic:
+
+`Query` ➔ `Problem Matching` ➔ `Graph Traversal` ➔ `Outcome Analysis` ➔ `Lesson Extraction` ➔ `Confidence Scoring`
 
 ---
 
@@ -47,6 +66,18 @@ A vector database returns:
 
 EDI traverses: `Problem` ➔ `Decision` ➔ `Outcome` ➔ `Lesson`
 allowing it to answer: **"What repeatedly caused this outcome?"**
+
+---
+
+## 🕸️ Why Graphs?
+
+A vector database answers:
+*"What discussions are similar?"*
+
+A graph answers:
+*"What decisions repeatedly led to this outcome?"*
+
+EDI relies on graph topology because relationships—not documents—contain engineering memory. Without causality, regret and recurrence analysis are impossible.
 
 ---
 
@@ -104,9 +135,11 @@ graph TD
 
 ---
 
-## 🧠 Powered by Cognee
+## ⚙️ Powered by Cognee
 
 EDI uses [Cognee](https://github.com/topoteretes/cognee) as its foundational memory layer.
+
+Cognee serves as the memory engine enabling causal traversal and persistent engineering memory.
 
 Cognee enables:
 - persistent engineering memory
@@ -115,7 +148,7 @@ Cognee enables:
 - causal traversal
 - cross-session reasoning
 
-Without Cognee, EDI would require manually building graph storage, vector retrieval, memory orchestration, and relationship traversal algorithms from scratch. The judges need to know: **Cognee is the core engine making causality possible.**
+Without Cognee, EDI would require manually building graph storage, vector retrieval, memory orchestration, and relationship traversal algorithms from scratch. It is the engine enabling causal memory and retrieval.
 
 ---
 
@@ -192,7 +225,7 @@ npm run dev
 ## 🛡️ Defensibility & Security
 
 - **Prompt Injection Defense:** Strict separation of context and instruction. Untrusted GitHub Markdown is explicitly isolated, and all LLM schemas demand strict engineering facts rather than instruction following.
-- **Graceful Degradation:** A complete decoupled architecture where frontend telemetry degrades to cached topological analysis if inference fails, avoiding demo-breaking 503s.
+- **Graceful Degradation:** A complete decoupled architecture where the frontend experiences graceful degradation by falling back to cached topological analysis if inference fails, avoiding demo-breaking 503s.
 
 ---
 
