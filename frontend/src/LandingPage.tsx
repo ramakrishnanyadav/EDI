@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { ArrowRight, BrainCircuit, Github, Cpu, Network } from 'lucide-react';
+import { ArrowRight, BrainCircuit, GitMerge, Cpu, Network } from 'lucide-react';
 
 export default function LandingPage({ onLogin }: { onLogin: () => void }) {
   const [isHovering, setIsHovering] = useState(false);
@@ -159,7 +159,7 @@ export default function LandingPage({ onLogin }: { onLogin: () => void }) {
             onClick={onLogin}
             className="w-full relative overflow-hidden px-8 py-4 bg-white text-black font-semibold rounded-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)]"
           >
-            <Github className="w-5 h-5" />
+            <GitMerge className="w-5 h-5" />
             Continue with GitHub
           </button>
 
