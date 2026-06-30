@@ -1,9 +1,27 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { ArrowRight, BrainCircuit, Github, Cpu, Network } from 'lucide-react';
 
 export default function LandingPage({ onLogin }: { onLogin: () => void }) {
   const [isHovering, setIsHovering] = useState(false);
+
+  // 3D Parallax Effect
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-100, 100], [15, -15]);
+  const rotateY = useTransform(x, [-100, 100], [-15, 15]);
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set(event.clientX - centerX);
+    y.set(event.clientY - centerY);
+  };
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
 
   return (
     <div className="relative min-h-screen bg-[#030303] text-[#FAFAFA] overflow-hidden flex flex-col items-center justify-center selection:bg-blue-500/30">
@@ -68,10 +86,53 @@ export default function LandingPage({ onLogin }: { onLogin: () => void }) {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-mono uppercase tracking-widest mb-8 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-mono uppercase tracking-widest mb-12 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
         >
           <Cpu className="w-3.5 h-3.5 animate-pulse" />
           Autonomous Engineering Intelligence
+        </motion.div>
+
+        {/* Mind-Blowing 3D Animated Hero Image */}
+        <motion.div
+          style={{ perspective: 1000 }}
+          className="relative w-full max-w-2xl mx-auto mb-16 flex items-center justify-center cursor-crosshair"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <motion.div
+            style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+            className="relative w-72 h-72 md:w-96 md:h-96 rounded-full"
+          >
+            {/* Glow Behind Image */}
+            <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-3xl animate-pulse" style={{ transform: "translateZ(-50px)" }} />
+            
+            {/* The 3D Image Asset */}
+            <img 
+              src="/hero-3d.png" 
+              alt="AI Core" 
+              className="w-full h-full object-cover rounded-full shadow-[0_0_60px_rgba(59,130,246,0.4)] border-4 border-white/5 backdrop-blur-xl"
+              style={{ transform: "translateZ(50px)" }}
+            />
+
+            {/* Floating Glass Orbs connected to Image */}
+            <motion.div 
+              animate={{ y: [-10, 10, -10], rotate: [0, 10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-10 -right-10 w-24 h-24 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.3)]"
+              style={{ transform: "translateZ(80px)" }}
+            >
+              <BrainCircuit className="w-8 h-8 text-purple-400/80" />
+            </motion.div>
+            
+            <motion.div 
+              animate={{ y: [10, -10, 10], rotate: [0, -10, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute -bottom-10 -left-10 w-20 h-20 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.3)]"
+              style={{ transform: "translateZ(100px)" }}
+            >
+              <Network className="w-6 h-6 text-blue-400/80" />
+            </motion.div>
+          </motion.div>
         </motion.div>
 
         <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 leading-tight">
